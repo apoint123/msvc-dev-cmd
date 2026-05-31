@@ -33,11 +33,18 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Prepare release directory
+        run: |
+          mkdir -p release
+          cp -r dist release/
+          cp action.yml release/
+          cp package.json release/
+
       - name: Deploy to release/v1
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          publish_dir: ./release
           publish_branch: release/v1
           force_orphan: true
           tag_name: ${{ inputs.version }}
