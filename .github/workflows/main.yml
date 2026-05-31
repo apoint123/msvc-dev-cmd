@@ -134,3 +134,47 @@ jobs:
         run: |
           cl.exe hello.c
           hello.exe
+
+  test-vs2026:
+    name: VS2026
+    runs-on: windows-2025-vs2026
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Enable Developer Command Prompt (amd64)
+        uses: ./
+        with:
+          arch: amd64
+
+      - name: Compile and run some C code (amd64)
+        shell: cmd
+        run: |
+          cl.exe hello.c
+          hello.exe
+
+      - name: Enable Developer Command Prompt (amd64_x86)
+        uses: ./
+        with:
+          arch: amd64_x86
+
+      - name: Compile and run some C code (x86)
+        shell: cmd
+        run: |
+          cl.exe hello.c
+          hello.exe

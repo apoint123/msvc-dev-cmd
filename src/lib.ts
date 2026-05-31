@@ -11,9 +11,10 @@ const PROGRAM_FILES = [
 ].filter((p) => p !== undefined);
 
 const EDITIONS = ["Enterprise", "Professional", "Community", "BuildTools"];
-const YEARS = ["2022", "2019", "2017"];
+const YEARS = ["2026", "2022", "2019", "2017"];
 
 const VsYearVersion: Record<number | string, string> = {
+	2026: "18.0",
 	2022: "17.0",
 	2019: "16.0",
 	2017: "15.0",
