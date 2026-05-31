@@ -1,0 +1,43 @@
+{
+	"name": "msvc-dev-cmd",
+	"version": "1.13.0-dev",
+	"description": "GitHub Action to setup Developer Command Prompt for Microsoft Visual C++",
+	"type": "module",
+	"main": "dist/index.mjs",
+	"scripts": {
+		"build": "tsdown",
+		"typecheck": "tsgo -b",
+		"lint": "biome lint . --error-on-warnings",
+		"format": "biome format . --write"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ilammy/msvc-dev-cmd.git"
+	},
+	"keywords": [
+		"GitHub",
+		"Actions",
+		"Developer Command Prompt",
+		"Microsoft Visual Studio",
+		"Microsoft Visual C++",
+		"Visual Studio",
+		"Visual C++",
+		"vcvarsall.bat"
+	],
+	"author": "ilammy <me@ilammy.net>",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/ilammy/msvc-dev-cmd/issues"
+	},
+	"homepage": "https://github.com/ilammy/msvc-dev-cmd#readme",
+	"dependencies": {
+		"@actions/core": "^3.0.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.16",
+		"@types/node": "^25.9.1",
+		"@typescript/native-preview": "7.0.0-dev.20260527.2",
+		"tsdown": "^0.22.1"
+	},
+	"packageManager": "pnpm@11.5.0"
+}
