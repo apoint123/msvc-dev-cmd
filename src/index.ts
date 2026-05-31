@@ -1,8 +1,8 @@
-const { setupMSVCDevCmd } = require("./lib");
-const core = require("@actions/core");
+import * as core from "@actions/core";
+import { setupMSVCDevCmd } from "./lib.js";
 
-function main() {
-	var arch = core.getInput("arch");
+function main(): void {
+	const arch = core.getInput("arch");
 	const sdk = core.getInput("sdk");
 	const toolset = core.getInput("toolset");
 	const uwp = core.getInput("uwp");
@@ -15,5 +15,6 @@ function main() {
 try {
 	main();
 } catch (e) {
-	core.setFailed("Could not setup Developer Command Prompt: " + e.message);
+	const message = e instanceof Error ? e.message : String(e);
+	core.setFailed(`Could not setup Developer Command Prompt: ${message}`);
 }

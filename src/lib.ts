@@ -1,19 +1,19 @@
-const core = require("@actions/core");
-const child_process = require("node:child_process");
-const fs = require("node:fs");
-const path = require("node:path");
-const process = require("node:process");
+import child_process from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import * as core from "@actions/core";
 
-const PROGRAM_FILES_X86 = process.env["ProgramFiles(x86)"];
+const PROGRAM_FILES_X86 = process.env["ProgramFiles(x86)"] ?? "";
 const PROGRAM_FILES = [
 	process.env["ProgramFiles(x86)"],
-	process.env["ProgramFiles"],
-];
+	process.env.ProgramFiles,
+].filter((p) => p !== undefined);
 
 const EDITIONS = ["Enterprise", "Professional", "Community", "BuildTools"];
 const YEARS = ["2022", "2019", "2017"];
 
-const VsYearVersion = {
+const VsYearVersion: Record<number | string, string> = {
 	2022: "17.0",
 	2019: "16.0",
 	2017: "15.0",
@@ -21,7 +21,7 @@ const VsYearVersion = {
 	2013: "12.0",
 };
 
-function vsversion_to_versionnumber(vsversion) {
+export function vsversion_to_versionnumber(vsversion: string): string {
 	if (Object.values(VsYearVersion).includes(vsversion)) {
 		return vsversion;
 	} else {
@@ -31,9 +31,8 @@ function vsversion_to_versionnumber(vsversion) {
 	}
 	return vsversion;
 }
-exports.vsversion_to_versionnumber = vsversion_to_versionnumber;
 
-function vsversion_to_year(vsversion) {
+export function vsversion_to_year(vsversion: string): string {
 	if (Object.keys(VsYearVersion).includes(vsversion)) {
 		return vsversion;
 	} else {
@@ -45,11 +44,13 @@ function vsversion_to_year(vsversion) {
 	}
 	return vsversion;
 }
-exports.vsversion_to_year = vsversion_to_year;
 
 const VSWHERE_PATH = `${PROGRAM_FILES_X86}\\Microsoft Visual Studio\\Installer`;
 
-function findWithVswhere(pattern, version_pattern) {
+export function findWithVswhere(
+	pattern: string,
+	version_pattern: string,
+): string | null {
 	try {
 		const installationPath = child_process
 			.execSync(
@@ -57,32 +58,33 @@ function findWithVswhere(pattern, version_pattern) {
 			)
 			.toString()
 			.trim();
-		return installationPath + "\\" + pattern;
+		return `${installationPath}\\${pattern}`;
 	} catch (e) {
 		core.warning(`vswhere failed: ${e}`);
 	}
 	return null;
 }
-exports.findWithVswhere = findWithVswhere;
 
-function findVcvarsall(vsversion) {
-	const vsversion_number = vsversion_to_versionnumber(vsversion);
-	let version_pattern;
+export function findVcvarsall(vsversion?: string): string {
+	const vsversion_number = vsversion
+		? vsversion_to_versionnumber(vsversion)
+		: undefined;
+	let version_pattern: string;
 	if (vsversion_number) {
-		const upper_bound = vsversion_number.split(".")[0] + ".9";
+		const upper_bound = `${vsversion_number.split(".")[0]}.9`;
 		version_pattern = `-version "${vsversion_number},${upper_bound}"`;
 	} else {
 		version_pattern = "-latest";
 	}
 
 	// If vswhere is available, ask it about the location of the latest Visual Studio.
-	let path = findWithVswhere(
+	let foundPath = findWithVswhere(
 		"VC\\Auxiliary\\Build\\vcvarsall.bat",
 		version_pattern,
 	);
-	if (path && fs.existsSync(path)) {
-		core.info(`Found with vswhere: ${path}`);
-		return path;
+	if (foundPath && fs.existsSync(foundPath)) {
+		core.info(`Found with vswhere: ${foundPath}`);
+		return foundPath;
 	}
 	core.info("Not found with vswhere");
 
@@ -92,11 +94,11 @@ function findVcvarsall(vsversion) {
 	for (const prog_files of PROGRAM_FILES) {
 		for (const ver of years) {
 			for (const ed of EDITIONS) {
-				path = `${prog_files}\\Microsoft Visual Studio\\${ver}\\${ed}\\VC\\Auxiliary\\Build\\vcvarsall.bat`;
-				core.info(`Trying standard location: ${path}`);
-				if (fs.existsSync(path)) {
-					core.info(`Found standard location: ${path}`);
-					return path;
+				foundPath = `${prog_files}\\Microsoft Visual Studio\\${ver}\\${ed}\\VC\\Auxiliary\\Build\\vcvarsall.bat`;
+				core.info(`Trying standard location: ${foundPath}`);
+				if (fs.existsSync(foundPath)) {
+					core.info(`Found standard location: ${foundPath}`);
+					return foundPath;
 				}
 			}
 		}
@@ -104,35 +106,41 @@ function findVcvarsall(vsversion) {
 	core.info("Not found in standard locations");
 
 	// Special case for Visual Studio 2015 (and maybe earlier), try it out too.
-	path = `${PROGRAM_FILES_X86}\\Microsoft Visual C++ Build Tools\\vcbuildtools.bat`;
-	if (fs.existsSync(path)) {
-		core.info(`Found VS 2015: ${path}`);
-		return path;
+	foundPath = `${PROGRAM_FILES_X86}\\Microsoft Visual C++ Build Tools\\vcbuildtools.bat`;
+	if (fs.existsSync(foundPath)) {
+		core.info(`Found VS 2015: ${foundPath}`);
+		return foundPath;
 	}
-	core.info(`Not found in VS 2015 location: ${path}`);
+	core.info(`Not found in VS 2015 location: ${foundPath}`);
 
 	throw new Error("Microsoft Visual Studio not found");
 }
-exports.findVcvarsall = findVcvarsall;
 
-function isPathVariable(name) {
+function isPathVariable(name: string): boolean {
 	const pathLikeVariables = ["PATH", "INCLUDE", "LIB", "LIBPATH"];
-	return pathLikeVariables.indexOf(name.toUpperCase()) != -1;
+	return pathLikeVariables.indexOf(name.toUpperCase()) !== -1;
 }
 
-function filterPathValue(path) {
-	const paths = path.split(";");
+function filterPathValue(pathString: string): string {
+	const paths = pathString.split(";");
 	// Remove duplicates by keeping the first occurance and preserving order.
 	// This keeps path shadowing working as intended.
-	function unique(value, index, self) {
+	function unique(value: string, index: number, self: string[]): boolean {
 		return self.indexOf(value) === index;
 	}
 	return paths.filter(unique).join(";");
 }
 
 /** See https://github.com/ilammy/msvc-dev-cmd#inputs */
-function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
-	if (process.platform != "win32") {
+export function setupMSVCDevCmd(
+	arch: string,
+	sdk?: string,
+	toolset?: string,
+	uwp?: string,
+	spectre?: string,
+	vsversion?: string,
+): void {
+	if (process.platform !== "win32") {
 		core.info("This is not a Windows virtual environment, bye!");
 		return;
 	}
@@ -142,7 +150,7 @@ function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
 
 	// There are all sorts of way the architectures are called. In addition to
 	// values supported by Microsoft Visual C++, recognize some common aliases.
-	const arch_aliases = {
+	const arch_aliases: Record<string, string> = {
 		win32: "x86",
 		win64: "x64",
 		x86_64: "x64",
@@ -156,8 +164,8 @@ function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
 	// Due to the way Microsoft Visual C++ is configured, we have to resort to the following hack:
 	// Call the configuration batch file and then output *all* the environment variables.
 
-	var args = [arch];
-	if (uwp == "true") {
+	const args = [arch];
+	if (uwp === "true") {
 		args.push("uwp");
 	}
 	if (sdk) {
@@ -166,7 +174,7 @@ function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
 	if (toolset) {
 		args.push(`-vcvars_ver=${toolset}`);
 	}
-	if (spectre == "true") {
+	if (spectre === "true") {
 		args.push("-vcvars_spectre_libs=spectre");
 	}
 
@@ -195,16 +203,16 @@ function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
 		return false;
 	});
 	if (error_messages.length > 0) {
-		throw new Error(
-			"invalid parameters" + "\r\n" + error_messages.join("\r\n"),
-		);
+		throw new Error(`invalid parameters\r\n${error_messages.join("\r\n")}`);
 	}
 
 	// Convert old environment lines into a dictionary for easier lookup.
-	const old_env_vars = {};
+	const old_env_vars: Record<string, string> = {};
 	for (const string of old_environment) {
 		const [name, value] = string.split("=");
-		old_env_vars[name] = value;
+		if (name) {
+			old_env_vars[name] = value;
+		}
 	}
 
 	// Now look at the new environment and export everything that changed.
@@ -236,4 +244,3 @@ function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
 
 	core.info(`Configured Developer Command Prompt`);
 }
-exports.setupMSVCDevCmd = setupMSVCDevCmd;

@@ -6,77 +6,123 @@ on:
     branches:
       - master
       - release/*
-  schedule:
-    - cron: '0 6 * * *'
 
 jobs:
   test:
     name: default
     runs-on: windows-latest
     steps:
-      - name: Check out source code
-        uses: actions/checkout@v4
-      - name: Download Internet
-        run: npm install
-      - name: Run eslint
-        run: npm run lint
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Type check
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
       - name: Enable Developer Command Prompt (amd64)
         uses: ./
         with:
           arch: amd64
+
       - name: Compile and run some C code (amd64)
         shell: cmd
         run: |
           cl.exe hello.c
           hello.exe
+
       - name: Enable Developer Command Prompt (amd64_x86)
         uses: ./
         with:
           arch: amd64_x86
+
       - name: Compile and run some C code (x86)
         shell: cmd
         run: |
           cl.exe hello.c
           hello.exe
+
       - name: Enable Developer Command Prompt (amd64_arm)
         uses: ./
         with:
           arch: amd64_arm
+
       - name: Compile some C code (arm)
         shell: cmd
         run: |
           cl.exe hello.c
           dumpbin /headers hello.exe
+
       - name: Enable Developer Command Prompt (amd64_arm64)
         uses: ./
         with:
           arch: amd64_arm64
+
       - name: Compile some C code (arm64)
         shell: cmd
         run: |
           cl.exe hello.c
           dumpbin /headers hello.exe
+
   audit:
     name: npm audit
     runs-on: ubuntu-latest
     steps:
-      - name: Check out source code
-        uses: actions/checkout@v4
-      - run: npm install
-      - run: npm audit --audit-level=moderate --production
-      - run: npm audit --audit-level=critical
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - run: pnpm audit --audit-level=moderate --production
+      - run: pnpm audit --audit-level=critical
+
   alias-arch:
     name: arch aliases
     runs-on: windows-latest
     steps:
-      - name: Check out source code
-        uses: actions/checkout@v4
-      - name: Download Internet
-        run: npm install
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
       - name: Enable Developer Command Prompt
         uses: ./
         with:
           arch: Win32
+
       - name: Compile and run some C code
         shell: cmd
         run: |

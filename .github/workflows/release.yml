@@ -1,31 +1,47 @@
-name: msvc-dev-cmd (release)
+name: Release
 
 on:
-  push:
-    branches:
-      - release/*
-  schedule:
-    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number (e.g., v1.13.0)"
+        required: true
+        type: string
 
 jobs:
-  test:
-    name: release
-    runs-on: windows-latest
-    steps:
-      - name: Setup Developer Command Prompt
-        uses: ilammy/msvc-dev-cmd@release/v1
-      - name: Check out source code
-        uses: actions/checkout@v4
-      - name: Compile and run some C code
-        shell: cmd
-        run: |
-          cl.exe hello.c
-          hello.exe
-  audit:
-    name: npm audit
+  release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
-      - name: Check out source code
-        uses: actions/checkout@v4
-      - run: npm audit --audit-level=moderate --production
-      - run: npm audit --audit-level=critical
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Deploy to release/v1
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: release/v1
+          force_orphan: true
+          tag_name: ${{ inputs.version }}
+          tag_message: "Release ${{ inputs.version }}"
+          user_name: "github-actions[bot]"
+          user_email: "github-actions[bot]@users.noreply.github.com"
+          commit_message: "Release ${{ inputs.version }}"
